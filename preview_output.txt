@@ -1,0 +1,124 @@
+--- SQL FILE PREVIEW ---
+﻿SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[cusm](
+	[CustomerId] [varchar](20) NULL,
+	[DeleteFlag] [varchar](1) NULL,
+	[CustomerGroup] [varchar](10) NULL,
+	[CustomerType] [varchar](1) NULL,
+	[Title] [varchar](6) NULL,
+	[Name] [varchar](100) NULL,
+	[Gender] [varchar](1) NULL,
+	[DOB] [date] NULL,
+	[Occupation] [varchar](6) NULL,
+	[Phone1] [varchar](15) NULL,
+	[Phone2] [varchar](15) NULL,
+	[Phone3] [varchar](15) NULL,
+	[Phone4] [varchar](15) NULL,
+	[Resident] [varchar](1) NULL,
+	[Employee] [varchar](1) NULL,
+	[EmployeeId] [varchar](9) NULL,
+	[Minor] [varchar](1) NULL,
+	[IndustryType] [varchar](6) NULL,
+	[CustomerSegment] [varchar](6) NULL,
+	[CustomerSector] [varchar](6) NULL,
+	[open_date] [date] NULL,
+	[solid] [varchar](6) NULL,
+	[LastChangedTime] [varchar](25) NULL,
+	[JointOccupation] [varchar](6) NULL,
+	[MembershipNo] [varchar](16) NULL,
+	[Caste] [varchar](6) NULL,
+	[MinorityYN] [char](1) NULL,
+	[ITDeclaration] [varchar](6) NULL,
+	[FarmerType] [varchar](6) NULL,
+	[WeakerSection] [varchar](6) NULL,
+	[SplCategory] [varchar](6) NULL,
+	[EmpName] [varchar](30) NULL,
+	[EmpRelation] [varchar](6) NULL,
+	[EmpGrade] [varchar](6) NULL,
+	[GroupCode] [varchar](6) NULL,
+	[BorrowerId] [varchar](6) NULL,
+	[PlaceIncorporated] [varchar](16) NULL,
+	[DateIncorporated] [date] NULL,
+	[PlaceRegistered] [varchar](16) NULL,
+	[DateRegistered] [date] NULL,
+	[BusinessCDate] [date] NULL,
+	[BusinessRegNo] [varchar](16) NULL,
+	[SalesTaxNo] [varchar](16) NULL,
+	[ExciseNo] [varchar](16) NULL,
+	[PoliticallyExposed] [varchar](6) NULL,
+	[AssetClassification] [varchar](6) NULL,
+	[MembershipType] [varchar](6) NULL,
+	[MembershipShares] [varchar](1) NULL,
+	[MembershipJoinDate] [date] NULL,
+	[NatureOfBusiness] [varchar](6) NULL,
+	[RELATION] [varchar](30) NULL,
+	[GUARD_CIF] [varchar](10) NULL,
+	[GUARD_CD] [varchar](15) NULL,
+	[guardian_name] [varchar](60) NULL,
+	[MAR_STATUS] [varchar](1) NULL,
+	[TDS_TBL] [varchar](10) NULL,
+	[COMMUNITY] [varchar](10) NULL,
+	[TF] [varchar](1) NULL,
+
+Error reading Excel with openpyxl: File is not a zip file
+
+
+--- EXCEL FILE PREVIEW (default engine) ---
+
+Sheet: CUSM_1.19
+    SR.NO. NEW/OLD TO BE REMOVED                  SECONDARY CUSTOMER DETAILS                      FIELD NAME                                                                                                                                                                                                            FIELD DESCRIPTION                                          DATABASE TABLE NAME DATABASE FIELD NAME  OFFSET FROM  OFFSET TO  FIELD LENGTH  Unnamed: 11 PICTURE CLAUSE MANDATORY / OPTIONAL                                                         SBI MAPPING RULE                                                                                                                                                                                                                                   ANZ MAPPING RULE  REMARKS BM FILE NAME  BM FIELD NAME BM DATA TYPE  OFFSET                                      DATA               Finacle            Unnamed: 23            Unnamed: 24           Unnamed: 25  Unnamed: 26  Unnamed: 27              Mega        Unnamed: 29
+0        1     Old            No         Mandatory - Same as Primary Customer              STRT-AREA-SOC-NO                                                                                                                                                                                                Contains the instituion number                                                         CUSM              SOC_NO            1          3             3            3      PIC 9(03)                    O                                                           Default to 003                                                                                                                                                                                                                                     Default to 003      NaN          NaN            NaN          NaN     NaN                                       003                  Parm                    NaN                    NaN                   NaN          NaN          NaN                 0                003
+1        2     Old            No         Mandatory - Same as Primary Customer              STRT-AREA-BRANCH                                                                                                                                                                                           Contains branch number of migration                                                          NaN                 NaN            4          8             5            5      PIC 9(05)                    O                                    Update from conversion parameter file                                                                                                                                                                                                         Contains branch number of migration branch      NaN          NaN            NaN          NaN     NaN                                     00008    CMG.primary_sol_id                    NaN                    NaN                   NaN          NaN          NaN  ebCustomerMaster              brncd
+2        3     Old            No         Mandatory - Same as Primary Customer              STRT-AREA-TELL-NO                                                                                                                                                                         Contains teller number assigned for migration branch                                                          NaN                 NaN            9         15             7            7      PIC 9(07)                    O                                    Update from conversion parameter file                                                                                                                                                                                                                                                  0      NaN          NaN            NaN          NaN     NaN                                    000005                  Parm                    NaN                    NaN                   NaN          NaN          NaN                 0             000005
+3        4     Old            No         Mandatory - Same as Primary Customer         CI0051-CUSTOMER-NUMBER                                                                                                                                                                                                 Contains the customer number  CUSM,CUSVAA,CUSVCC,CUSVDD,CUSVD1,CUSVEE,MICV,MICM,CUID,TFNM        CUST_ACCT_NO           16         31            16           16      PIC 9(16)                    M                To be generated at the time of extraction of data from BM  If CRD0BB-Cus-Num = '00999' Then If PARMXREF-999-create-flag =Y Then Set to 999999999' Else skip customer number '00999' Else If CRD-CBS-Cust-Type <> 1 Set to Conv-Branch-code(3:2) + CRD0 BB-Cus-Num + '00' Else Set to Conv-Branch-code(3:2) +      NaN          NaN            NaN          NaN     NaN                         00000050408000001           CMG.cust_id                    NaN                    NaN                   NaN          NaN          NaN  ebCustomerMaster             custno
+4        5     Old            No         Mandatory - Same as Primary Customer         CI0051-62001-CUST-TYPE  Contains the customer type. This allows a customer to be defined as personal or business, and the system will only permit access to personal details for personal customers and to business details for business customers.                                                         CUSM  TIER_CUSTOMER_TYPE           32         39             8            8     PIC X(08)                     M                                  01-Personal,02-Business,03-Trust&Others                                                                                                                                                                                                                            Set to CRD0BB-Cust-Type      NaN          NaN            NaN          NaN     NaN                                  0102        cmg.cust_type_code                    NaN                    NaN    cmg.cust_type_code          NaN          NaN  ebCustomerMaster           custtype
+5        6     Old            No         Mandatory - Same as Primary Customer        CI0051-62001-TITLE-CODE                                                                                                                                                                                             Contains the customer title code                                                       CUSVAA          TITLE_CODE           40         41             2            2      PIC 9(02)                    O  If BM Sexcode = 0 map to 01(Mr),if it is 1 map to 02(Ms) else set to 99                                                                                                                                                                                                  Set to value from SALNXREF (cross reference file)      NaN          NaN            NaN          NaN     NaN                                        01   cmg.cust_title_code                    NaN                    NaN   cmg.cust_title_code          NaN          NaN  ebCustomerMaster              title
+6        7     Old            No         Mandatory - Same as Primary Customer     CI0051-62001-KEY-FIRSTNAME                                                                                                                                                                               Contains the first name or names for customers                                                       CUSVAA        NAME1                  42         81            40           40      PIC X(40)                    M                                       Update with first name of customer                                                                                                                                                                               If CRD0BB-CBS-Cust-Type = 1 Then  Set to first name of all customers      NaN          CRD            NaN        X(30)   231.0                                    ELVINA         cmg.cust_name                    NaN                    NaN                   NaN          NaN          NaN  ebCustomerMaster               name
+7        8     New            No  Optional - Can Differ From Primary Customer          CI0051-62001-MID-NAME                                                                                                                                                                                                      Middle name of Customer                                                       CUSVAA            MID_NAME           82        121            40           40      PIC X(40)                    O                                          Set to spaces if not available.                                                                                                                                                                                                                                                NaN      NaN          NaN            NaN          NaN     NaN                                    RONALD                 Logic                    NaN                    NaN                   NaN          NaN          NaN  ebCustomerMaster               name
+8        9     Old            No         Mandatory - Same as Primary Customer       CI0051-62001-KEY-SURNAME                                                                                                                                                                                         Contains the last name for customers                                                       CUSVAA        NAME2                 122        161            40           40      PIC X(40)                    M                                          Update with lstname of customer                                                                                                                                                                                 If CRD0BB-CBS-Cust-Type= 1 Then  Set to last name of all customers      NaN          CRD            NaN        X(30)   261.0                                    SAMUEL                 Logic                    NaN                    NaN                   NaN          NaN          NaN  ebCustomerMaster               name
+9       10     Old            No         Mandatory - Same as Primary Customer              CI0051-62001-ADD1                                                                                                         Contains the first line of the customer's address. It is suggested that it be used for the building or property name                                                       CUSVAA        ADD1                  162        201            40           40      PIC X(40)                    M                                                 BM-CRD0BB Cus Add Lne 1.                                                                                                                                                                    BM-CRD0BB Cus Add Lne 1.   If CRD0BB-Cus-Add-Lne-1 = spaces Report Information       NaN          CRD            NaN        X(30)    38.0  3 , VASUKI  SOC.,                              cust_perm_addr1   cust_comu_addr1 varc    as per ADDRESS_TYPE                   NaN          NaN          NaN   ebAddressmaster               add1
+10      11     Old            No         Mandatory - Same as Primary Customer              CI0051-62001-ADD2                                                                 Contains the second line of the customer's address. It is suggested that it be used for the number and name of the street, or for the post office box number                                                       CUSVAA        ADD2                  202        241            40           40      PIC X(40)                    O                                                 BM-CRD0BB Cus Add Lne 2                                                                                                                                                                                                                            BM-CRD0BB Cus Add Lne 2       NaN          CRD            NaN        X(30)    68.0   SHITOLE  NAGAR, OLD  SANGVI                   cust_perm_addr2   cust_comu_addr2 varc                    NaN                   NaN          NaN          NaN   ebAddressmaster               add2
+11      12     Old            No         Mandatory - Same as Primary Customer              CI0051-62001-ADD3                                                                                                  Contains the third line of the customer's address. It is suggested that it be used for the name of the city, town or suburb                                                       CUSVAA        ADD3                  242        281            40           40      PIC X(40)                    M                                                  BM-CRD0BB Cus Add Lne 3                                                                                                                                                                                                                            BM-CRD0BB Cus Add Lne 3      NaN          CRD            NaN        X(20)    98.0  PUNE                                       cust_perm_city_code   cust_comu_city_code                     NaN   cust_perm_city_code          NaN          NaN   ebAddressmaster               add3
+12      13     Old            No         Mandatory - Same as Primary Customer              CI0051-62001-ADD4                                                                                                           Contains the fourth line of the customer's address. It is suggested that it be used for the state or province name                                                       CUSVAA        ADD4                  282        321            40           40      PIC X(40)                    O                                                  BM-CRD0BB Cus Add Lne 4                                                                                                                                                                                    Trim (BM-CRD0BB Cus Add Lne 4) + ‘  ‘ + BM-CRD0BB Cus Add Lne 5      NaN          CRD            NaN        x(20)   118.0                                       NaN  cust_perm_state_code   cust_comu_state_code                    NaN  cust_perm_state_code          NaN          NaN   ebAddressmaster  at+post+tal+distt
+13      14     Old            No         Mandatory - Same as Primary Customer          CI0051-62001-POSTCODE                                                                                                                                                            Contains the postcode/zip code relevant to the customer's address                                                       CUSVAA        POSTCODE              322        329             8            8      PIC X(08)                    O                     Trim BM-CRD0BB Cus Add Lne 5 and update with 8 chars                                                                                                                                                                                                                                 BM-CRD0BB City Pin      NaN          CRD            NaN        x(10)   138.0                                    411027    cust_perm_pin_code   cust_comu_pin_code v                    NaN                   NaN          NaN          NaN   ebAddressmaster              pincd
+14      15     Old            No  Optional - Can Differ From Primary Customer  CI0051-62001-PHONE-NO-RES                                                                                                                                                                                 Contains the customer's residential phone number                                                       CUSVAA        PHONE_NO_RES          330        341            12           12      PIC X(12)                    O                                                   BM CRD0BB Cus Phn Num                                                                                                                                            BM CRD0BB Cus Phn Num  (Upto first delimitor after 5 characters or first 12 characters if no delimitors)      NaN          CRD            NaN         x(8)   186.0                                       NaN   cust_perm_phone_num  cust_comu_phone_num_1  cust_comu_phone_num_2                   NaN          NaN          NaN   ebAddressmaster                tel
+
+Sheet: List Of Values
+    Unnamed: 0                     FIELD NAME VALUE DESCRIPTION     Unnamed: 4  Unnamed: 5
+0         45.0        CI0051-62001-TITLE-CODE     1          Mr     TITLE CODE         NaN
+1         45.0        CI0051-62001-TITLE-CODE     2         Mrs     TITLE CODE         NaN
+2         45.0        CI0051-62001-TITLE-CODE     3          Ms     TITLE CODE         NaN
+3         45.0        CI0051-62001-TITLE-CODE     4        Miss     TITLE CODE         NaN
+4         45.0        CI0051-62001-TITLE-CODE     5          Dr     TITLE CODE         NaN
+5          NaN         CI0051-62001-CUST-TYPE     1    Personal  CUSTOMER TYPE         NaN
+6          NaN         CI0051-62001-CUST-TYPE     2    Business  CUSTOMER TYPE         NaN
+7          NaN         CI0051-62001-CUST-TYPE     3       Trust  CUSTOMER TYPE         NaN
+8          3.0  CI0051-62001-RES-COUNTRY-CODE    AT     Austria            NaN         NaN
+9          NaN  CI0051-62001-RES-COUNTRY-CODE    AU   Australia            NaN         NaN
+10         NaN  CI0051-62001-RES-COUNTRY-CODE    BE     Belgium            NaN         NaN
+11         NaN  CI0051-62001-RES-COUNTRY-CODE    BW    Botswana            NaN         NaN
+12         NaN  CI0051-62001-RES-COUNTRY-CODE    CA      Canada            NaN         NaN
+13         NaN  CI0051-62001-RES-COUNTRY-CODE    CH  Switzerlan            NaN         NaN
+14         NaN  CI0051-62001-RES-COUNTRY-CODE    DE     Germany            NaN         NaN
+
+Sheet: Sheet1
+                       Unnamed: 0  Unnamed: 1                          create table cusm(
+0               STRT_AREA_SOC_NO            3               STRT_AREA_SOC_NO  varchar(3),
+1               STRT_AREA_BRANCH            5               STRT_AREA_BRANCH  varchar(5),
+2               STRT_AREA_TELL_NO           7               STRT_AREA_TELL_NO varchar(7),
+3          CI0051_CUSTOMER_NUMBER          16         CI0051_CUSTOMER_NUMBER varchar(16),
+4          CI0051_62001_CUST_TYPE           8          CI0051_62001_CUST_TYPE varchar(8),
+5         CI0051_62001_TITLE_CODE           2         CI0051_62001_TITLE_CODE varchar(2),
+6      CI0051_62001_KEY_FIRSTNAME          40     CI0051_62001_KEY_FIRSTNAME varchar(40),
+7           CI0051_62001_MID_NAME          40          CI0051_62001_MID_NAME varchar(40),
+8        CI0051_62001_KEY_SURNAME          40       CI0051_62001_KEY_SURNAME varchar(40),
+9               CI0051_62001_ADD1          40              CI0051_62001_ADD1 varchar(40),
+10              CI0051_62001_ADD2          40              CI0051_62001_ADD2 varchar(40),
+11              CI0051_62001_ADD3          40              CI0051_62001_ADD3 varchar(40),
+12              CI0051_62001_ADD4          40              CI0051_62001_ADD4 varchar(40),
+13          CI0051_62001_POSTCODE           8           CI0051_62001_POSTCODE varchar(8),
+14  CI0051_62001_PHONE_NO_RES              12  CI0051_62001_PHONE_NO_RES     varchar(12),

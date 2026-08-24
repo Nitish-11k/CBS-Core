@@ -4,10 +4,14 @@ source_db:
   url: "sqlite:///source_mock.db"
   # Example for postgres
   # url: "postgresql+psycopg2://user:password@localhost:5432/sourcedb"
+  # Example for ODBC DSN (Windows)
+  # url: "mssql+pyodbc://DSN_NAME"
 
 target_db:
-  dialect: sqlite
-  url: "sqlite:///target_mock.db"
+  dialect: mssql
+  # Connect to Target using ODBC DSN
+  url: "mssql+pyodbc://MyTargetDSN"
+  # url: "sqlite:///target_mock.db"
 
 audit_db:
   dialect: sqlite

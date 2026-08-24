@@ -62,3 +62,27 @@ class SchemaIntrospector:
             ))
             
         return metadata_list
+
+    def build_table_from_sql(self, sql_filepath: str):
+        """Reads a SQL DDL script and executes it against the connected database to build the table."""
+        from sqlalchemy import text
+        import os
+        
+        if not os.path.exists(sql_filepath):
+            raise FileNotFoundError(f"SQL file not found: {sql_filepath}")
+            
+        try:
+            with open(sql_filepath, 'r', encoding='utf-16le', errors='replace') as f:
+                content = f.read()
+        except UnicodeError:
+            with open(sql_filepath, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+                
+        # Split by GO for SQL Server scripts
+        statements = [s.strip() for s in content.split('GO') if s.strip()]
+        
+        with self.engine.connect() as conn:
+            with conn.begin():
+                for stmt in statements:
+                    if stmt:
+                        conn.execute(text(stmt))
