@@ -1,0 +1,23 @@
+# Mapping configuration template
+name: "Example Mapping"
+version: "1.0"
+source_table: "source_table_name"
+target_table: "target_table_name"
+
+# Field mappings list
+# Modes: "direct", "constant", "expression"
+mappings:
+  - source_col: "id"
+    target_col: "id"
+    mode: "direct"
+  
+  - source_col: null
+    target_col: "status"
+    mode: "constant"
+    constant_value: "NEW"
+    
+  - source_col: "created_at"
+    target_col: "created_date"
+    mode: "expression"
+    # Expression uses 'val' to refer to the source series if source_col is provided
+    expression: "pd.to_datetime(val).dt.date"

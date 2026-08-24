@@ -1,0 +1,14 @@
+source_db:
+  dialect: sqlite
+  # Example for sqlite (relative to where main.py runs)
+  url: "sqlite:///source_mock.db"
+  # Example for postgres
+  # url: "postgresql+psycopg2://user:password@localhost:5432/sourcedb"
+
+target_db:
+  dialect: sqlite
+  url: "sqlite:///target_mock.db"
+
+audit_db:
+  dialect: sqlite
+  url: "sqlite:///audit.db"
