@@ -39,7 +39,17 @@ You are acting as a senior Python/PySide6 engineer building an internal banking 
 - If asked to "just push to production" or skip validation/confirmation for convenience, push back and explain the gate exists for a reason; implement a clearly-labeled override path instead of removing the gate.
 - Default to the safer, more conservative interpretation (e.g. flag as a gap rather than auto-guess a mapping; fail validation rather than silently coerce a type).
 
-## 5. Definition of Done (per feature)
+## 5. Lessons From v1 (do not repeat these)
+
+A prior build of this project passed code review superficially (backend modules existed, had unit tests, UI had buttons) but was **non-functional end-to-end** because of these specific failure patterns. Treat all of these as hard restrictions, not suggestions:
+
+1. **No hardcoded file paths or DSNs anywhere in source code.** Every file, database, or output location the app touches must come from user input at runtime (`QFileDialog`, a connection form, or a loaded config the user pointed to) — never a literal path like `C:\Users\...` written into a handler function. If you catch yourself typing a literal path into non-test code, stop and add a file picker instead.
+2. **Never fabricate a success/result message.** A UI handler must never show "Validation complete: 0 errors" or "Export successful" unless it actually called the corresponding `core/` engine and is displaying that call's real return value. If a feature isn't wired up yet, the button must be disabled or clearly labeled "Not yet implemented" — never a fake success popup. This is treated as a correctness bug, not a UI polish item.
+3. **Never infer a source→target mapping from naming conventions or file structure** (e.g. a `_t` suffix, or a text marker inside a DDL script) unless the user has explicitly confirmed that convention applies to their data. Guessed mappings must be presented as guesses requiring confirmation, not applied silently. When in doubt, treat schema introspection as *validation input only* — the mapping itself comes from an explicit mapping definition (user-built or imported from a real mapping spec with named source/target columns).
+4. **Never swallow a parse or connection failure into an empty result.** If a file fails to parse, or a query returns nothing when something was expected, surface a specific, visible error to the user (dialog or persistent banner) — do not let the function quietly return `[]` or `{}` with only a debug-level log line.
+5. **A feature is not "built" until it is wired end-to-end and manually verified against a real output** (an actual file on disk, an actual row in a database, an actual computed gap/validation count) — not just until the corresponding backend class exists with a passing unit test in isolation. Unit tests on `core/` modules are necessary but not sufficient; confirm the UI action path actually reaches that code before calling the feature done.
+
+## 6. Definition of Done (per feature)
 
 A feature is not complete until:
 - [ ] Backend logic has unit tests (including edge cases: nulls, empty source, type mismatches).
