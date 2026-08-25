@@ -50,7 +50,11 @@ class DBConnector:
         if url.startswith("sqlite"):
             connect_args["check_same_thread"] = False
             
-        engine = create_engine(url, connect_args=connect_args)
+        kwargs = {}
+        if url.startswith("mssql+pyodbc"):
+            kwargs['use_setinputsizes'] = False
+            
+        engine = create_engine(url, connect_args=connect_args, **kwargs)
         self.engines[db_key] = engine
         return engine
 

@@ -9,12 +9,13 @@ from typing import List, Dict, Any, Tuple, Optional
 
 class IDSParser:
     @staticmethod
-    def parse_sql_schema(sql_filepath: str) -> Tuple[List[Dict[str, Any]], str]:
+    def parse_sql_schema(sql_filepath: str, section: str = "auto") -> Tuple[List[Dict[str, Any]], str]:
         """
         Parses a CREATE TABLE SQL script to extract column definitions.
+        Supports splitting by '---------------new' separator into source vs target columns.
+        section: "source", "target", or "auto"/"all"
         Returns (columns_list, table_name).
         """
-        cols = []
         if not os.path.exists(sql_filepath):
             raise FileNotFoundError(f"SQL file not found: {sql_filepath}")
             
@@ -48,16 +49,27 @@ class IDSParser:
         if table_name:
             skip_names.add(table_name.lower())
             
-        # Regex for column definitions: [col_name] [type](length) NULL/NOT NULL
+        # Check for '---------------new' separator comment
+        new_split = re.split(r'-{3,}\s*new', content, flags=re.IGNORECASE)
+        if len(new_split) > 1:
+            if section == "source":
+                content = new_split[0]
+            elif section == "target":
+                content = new_split[1]
+            elif section == "auto":
+                # Default for auto if not specified: if file contains ---------------new, 
+                # section="source" picks first half, section="target" picks second half.
+                content = new_split[0]
+            
         pattern = r'\[([^\]]+)\]\s+\[([^\]]+)\](?:\((\d+(?:,\s*\d+)?)\))?\s+(NULL|NOT NULL)?'
         matches = re.finditer(pattern, content)
+        cols = []
         for match in matches:
             col_name = match.group(1)
             if col_name.lower() in skip_names:
                 continue
             data_type = match.group(2).upper()
             length_str = match.group(3) if match.group(3) else ""
-            # Handle precision types like NUMERIC(10,2) — take the first number as length
             length = length_str.split(',')[0].strip() if length_str else ""
             nullable = True if match.group(4) == "NULL" else False
             cols.append({
@@ -68,7 +80,7 @@ class IDSParser:
             })
             
         if not cols:
-            raise ValueError(f"No column definitions found in SQL file: {sql_filepath}")
+            raise ValueError(f"No column definitions found in SQL file ({section}): {sql_filepath}")
             
         return cols, table_name
 
@@ -278,8 +290,13 @@ class IDSParser:
                 src_col = src_by_name.get(excel_rule["src_col"].lower()) if excel_rule.get("src_col") else None
                 rule_text = excel_rule.get("rule_expr", "")
             
+            # Check for direct name match in source_cols (e.g. CustomerId -> CustomerId_t)
+            base_name = tgt_name[:-2] if tgt_name.lower().endswith('_t') else tgt_name
+            direct_src = src_by_name.get(tgt_name.lower()) or src_by_name.get(base_name.lower())
+            
             if src_col:
                 result.append({
+                    "src_table": src_col.get("table_name", ""),
                     "src_col": src_col["col_name"],
                     "src_type": src_col["type"],
                     "src_len": src_col["len"],
@@ -291,9 +308,24 @@ class IDSParser:
                     "tgt_null": tgt["null"],
                     "rule_expr": rule_text[:50] + "..." if len(rule_text) > 50 else rule_text
                 })
+            elif direct_src:
+                result.append({
+                    "src_table": direct_src.get("table_name", ""),
+                    "src_col": direct_src["col_name"],
+                    "src_type": direct_src["type"],
+                    "src_len": direct_src["len"],
+                    "src_null": direct_src["null"],
+                    "map_status": "🟢 Mapped",
+                    "tgt_col": tgt_name,
+                    "tgt_type": tgt["type"],
+                    "tgt_len": tgt["len"],
+                    "tgt_null": tgt["null"],
+                    "rule_expr": "Direct Name Match"
+                })
             elif excel_rule:
                 # Has a mapping rule but source col not found in loaded source schema
                 result.append({
+                    "src_table": "",
                     "src_col": excel_rule.get("src_col", ""),
                     "src_type": excel_rule.get("src_type", ""),
                     "src_len": excel_rule.get("src_len", ""),
@@ -307,6 +339,7 @@ class IDSParser:
                 })
             else:
                 result.append({
+                    "src_table": "",
                     "src_col": "",
                     "src_type": "",
                     "src_len": "",
@@ -324,6 +357,7 @@ class IDSParser:
         for src in source_cols:
             if src["col_name"].lower() not in mapped_src_names:
                 result.append({
+                    "src_table": src.get("table_name", ""),
                     "src_col": src["col_name"],
                     "src_type": src["type"],
                     "src_len": src["len"],

@@ -106,7 +106,10 @@ class ConnectionDialog(QDialog):
         conn_str = self.get_sqlalchemy_url()
         try:
             from sqlalchemy import create_engine
-            engine = create_engine(conn_str)
+            kwargs = {}
+            if conn_str.startswith("mssql+pyodbc"):
+                kwargs['use_setinputsizes'] = False
+            engine = create_engine(conn_str, **kwargs)
             engine.connect().close()
             QMessageBox.information(self, "Connection Test", "Connection successful!")
         except Exception as e:

@@ -35,16 +35,23 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Source-to-Target Data Mapping Studio (Banking ETL)")
         self.resize(1280, 850)
         
-        # Apply a clean basic style
+        # Apply a sleek Dark Theme style
         self.setStyleSheet("""
-            QMainWindow { background-color: #f5f6fa; }
-            QGroupBox { font-weight: bold; border: 1px solid #dcdde1; border-radius: 5px; margin-top: 10px; }
-            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; color: #2f3640; }
-            QToolBar { background-color: #ffffff; border-bottom: 1px solid #dcdde1; spacing: 10px; padding: 5px; }
-            QToolBar QToolButton { padding: 5px 10px; border-radius: 3px; background: #f5f6fa; }
-            QToolBar QToolButton:hover { background: #e1b12c; color: white; }
-            QTableView { border: 1px solid #dcdde1; gridline-color: #f5f6fa; background-color: white; }
-            QHeaderView::section { background-color: #353b48; color: white; padding: 5px; font-weight: bold; border: none; }
+            QMainWindow { background-color: #1e1e2e; color: #cdd6f4; }
+            QWidget { font-family: 'Segoe UI', Inter, sans-serif; }
+            QGroupBox { font-weight: bold; border: 1px solid #45475a; border-radius: 6px; margin-top: 12px; color: #cdd6f4; }
+            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px 0 5px; color: #89b4fa; }
+            QToolBar { background-color: #181825; border-bottom: 1px solid #313244; spacing: 8px; padding: 5px; }
+            QToolBar QToolButton { padding: 6px 12px; border-radius: 4px; background: #313244; color: #cdd6f4; font-weight: 500; }
+            QToolBar QToolButton:hover { background: #89b4fa; color: #1e1e2e; }
+            QTableView { border: 1px solid #313244; gridline-color: #45475a; background-color: #181825; color: #cdd6f4; alternate-background-color: #1e1e2e; selection-background-color: #89b4fa; selection-color: #1e1e2e; }
+            QHeaderView::section { background-color: #313244; color: #cdd6f4; padding: 6px; font-weight: bold; border: none; border-right: 1px solid #45475a; }
+            QPushButton { background-color: #89b4fa; color: #1e1e2e; border: none; padding: 6px 15px; border-radius: 4px; font-weight: bold; }
+            QPushButton:hover { background-color: #b4befe; }
+            QTextEdit { background-color: #181825; color: #a6e3a1; border: 1px solid #313244; border-radius: 4px; font-family: Consolas, monospace; }
+            QLabel { color: #cdd6f4; }
+            QTabBar::tab { background: #313244; color: #cdd6f4; padding: 8px 20px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+            QTabBar::tab:selected { background: #181825; border-top: 2px solid #89b4fa; }
         """)
         
         self.worker_thread = None
@@ -55,6 +62,7 @@ class MainWindow(QMainWindow):
         self.mapping_rules = []
         self.code_mappings = {}
         self.staged_data = None
+        self.source_data = None
         
         self.setup_ui()
 
@@ -72,10 +80,12 @@ class MainWindow(QMainWindow):
         self.btn_load_source = QPushButton("📂 Load Source Schema")
         self.btn_load_target = QPushButton("🎯 Load Target Schema")
         self.btn_load_mapping = QPushButton("📑 Load IDS Mapping")
+        self.btn_load_data = QPushButton("📥 Load Source Data (Live)")
         
         self.lbl_source = QLabel("Source: Not Loaded")
         self.lbl_target = QLabel("Target: Not Loaded")
         self.lbl_mapping = QLabel("Mapping: Not Loaded")
+        self.lbl_data = QLabel("Data: Mock")
         
         info_layout.addWidget(self.btn_load_source)
         info_layout.addWidget(self.lbl_source)
@@ -85,6 +95,9 @@ class MainWindow(QMainWindow):
         info_layout.addSpacing(20)
         info_layout.addWidget(self.btn_load_mapping)
         info_layout.addWidget(self.lbl_mapping)
+        info_layout.addSpacing(20)
+        info_layout.addWidget(self.btn_load_data)
+        info_layout.addWidget(self.lbl_data)
         info_layout.addStretch()
         
         main_layout.addWidget(info_group)
@@ -92,6 +105,7 @@ class MainWindow(QMainWindow):
         self.btn_load_source.clicked.connect(self.load_source_schema)
         self.btn_load_target.clicked.connect(self.load_target_schema)
         self.btn_load_mapping.clicked.connect(self.load_ids_mapping)
+        self.btn_load_data.clicked.connect(self.load_source_data)
 
         # 2. Main Toolbar (Modes)
         toolbar = QToolBar("Action Toolbar")
@@ -139,6 +153,28 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(self.table_view)
         main_layout.addWidget(grid_group, stretch=3)
         
+        # Inline Editing Delegate for Source Column
+        from PySide6.QtWidgets import QStyledItemDelegate
+        class ComboDelegate(QStyledItemDelegate):
+            def __init__(self, main_win):
+                super().__init__(main_win)
+                self.main_win = main_win
+            def createEditor(self, parent, option, index):
+                combo = QComboBox(parent)
+                src_names = [""] + [c["col_name"] for c in self.main_win.source_metadata]
+                combo.addItems(src_names)
+                return combo
+            def setEditorData(self, editor, index):
+                val = index.model().data(index, Qt.ItemDataRole.DisplayRole)
+                idx = editor.findText(val) if val else 0
+                editor.setCurrentIndex(max(0, idx))
+            def setModelData(self, editor, model, index):
+                model.setData(index, editor.currentText(), Qt.ItemDataRole.EditRole)
+
+        self.combo_delegate = ComboDelegate(self)
+        self.table_view.setItemDelegateForColumn(1, self.combo_delegate)
+        self.table_model.dataChanged.connect(self.on_mapping_edited)
+        
         # Legend
         legend = QLabel("Legend: 🟢 Mapped | 🟡 Unmapped Source (may be dropped) | 🔴 Target Gap (must map)")
         legend.setStyleSheet("font-style: italic; color: #7f8fa6;")
@@ -180,15 +216,42 @@ class MainWindow(QMainWindow):
         self.adjust_table_columns()
 
     def adjust_table_columns(self):
-        self.table_view.setColumnWidth(0, 200) # Src Col
-        self.table_view.setColumnWidth(1, 80) # Src Type
-        self.table_view.setColumnWidth(2, 50)  # Src Len
-        self.table_view.setColumnWidth(3, 50)  # Src Null
-        self.table_view.setColumnWidth(4, 100) # Status
-        self.table_view.setColumnWidth(5, 150) # Tgt Col
-        self.table_view.setColumnWidth(6, 100) # Tgt Type
-        self.table_view.setColumnWidth(7, 50)  # Tgt Len
-        self.table_view.setColumnWidth(8, 50)  # Tgt Null
+        self.table_view.setColumnWidth(0, 100) # Src Table
+        self.table_view.setColumnWidth(1, 150) # Src Col
+        self.table_view.setColumnWidth(2, 80)  # Src Type
+        self.table_view.setColumnWidth(3, 50)  # Src Len
+        self.table_view.setColumnWidth(4, 50)  # Src Null
+        self.table_view.setColumnWidth(5, 100) # Status
+        self.table_view.setColumnWidth(6, 150) # Tgt Col
+        self.table_view.setColumnWidth(7, 100) # Tgt Type
+        self.table_view.setColumnWidth(8, 50)  # Tgt Len
+        self.table_view.setColumnWidth(9, 50)  # Tgt Null
+
+    def on_mapping_edited(self, top_left, bottom_right, roles):
+        if Qt.ItemDataRole.EditRole in roles or not roles:
+            row = top_left.row()
+            col = top_left.column()
+            if col == 1:
+                # Update mapping rules
+                new_src = self.table_model._data[row]["src_col"]
+                tgt = self.table_model._data[row]["tgt_col"]
+                
+                rule_found = False
+                for r in self.mapping_rules:
+                    if r.get("tgt_col", "").lower() == tgt.lower():
+                        r["src_col"] = new_src
+                        rule_found = True
+                        break
+                        
+                if not rule_found and tgt:
+                    self.mapping_rules.append({
+                        "src_col": new_src,
+                        "tgt_col": tgt,
+                        "rule_expr": ""
+                    })
+                
+                # Refresh to re-evaluate statuses
+                self.refresh_grid()
 
     def get_schema_from_dialog(self, source_type: str):
         dialog = ConnectionDialog(self)
@@ -202,7 +265,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Warning", "No DDL file selected.")
                 return None, None
             try:
-                raw_cols, table_name = IDSParser.parse_sql_schema(conn_str)
+                raw_cols, table_name = IDSParser.parse_sql_schema(conn_str, section=source_type.lower())
                 cols = []
                 for c in raw_cols:
                     meta = ColumnMetadata(
@@ -213,6 +276,7 @@ class MainWindow(QMainWindow):
                         is_pk=False
                     )
                     c["_meta"] = meta
+                    c["table_name"] = table_name
                     cols.append(c)
                 label = f"DDL: {table_name} ({os.path.basename(conn_str)})"
                 self.log_text.append(f"[INFO] Detected table name: '{table_name}' from DDL.")
@@ -223,7 +287,10 @@ class MainWindow(QMainWindow):
                 return None, None
         else:
             try:
-                engine = create_engine(conn_str)
+                kwargs = {}
+                if conn_str.startswith("mssql+pyodbc"):
+                    kwargs['use_setinputsizes'] = False
+                engine = create_engine(conn_str, **kwargs)
                 introspector = SchemaIntrospector(engine)
                 # Ask user which table to introspect
                 available_tables = introspector.get_table_names()
@@ -249,6 +316,7 @@ class MainWindow(QMainWindow):
                         "type": meta.data_type,
                         "len": meta.length if meta.length else "",
                         "null": meta.nullable,
+                        "table_name": table_name,
                         "_meta": meta
                     })
                 return cols, f"DB: {table_name} ({engine.url.database or 'Live'})"
@@ -260,20 +328,90 @@ class MainWindow(QMainWindow):
     def load_source_schema(self):
         cols, label = self.get_schema_from_dialog("Source")
         if cols is not None:
-            self.source_metadata = cols
-            self.lbl_source.setText(f"Source: {label}")
-            self.lbl_source.setStyleSheet("color: #44bd32; font-weight: bold;")
-            self.log_text.append(f"[SUCCESS] Loaded {len(cols)} source columns.")
-            self.refresh_grid()
+            self.handle_unified_schema_split(cols, label, "Source")
 
     def load_target_schema(self):
         cols, label = self.get_schema_from_dialog("Target")
         if cols is not None:
+            self.handle_unified_schema_split(cols, label, "Target")
+
+    def handle_unified_schema_split(self, cols, label, default_type):
+        has_t = any(c["col_name"].lower().endswith('_t') for c in cols)
+        if has_t:
+            from PySide6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(self, "Unified Schema Detected", 
+                f"Detected columns ending with '_t'. Do you want to automatically split this into Source and Target schemas?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
+            if reply == QMessageBox.StandardButton.Yes:
+                source_cols = [c for c in cols if not c["col_name"].lower().endswith('_t')]
+                target_cols = [c for c in cols if c["col_name"].lower().endswith('_t')]
+                self.source_metadata = source_cols
+                self.target_metadata = target_cols
+                self.lbl_source.setText(f"Source: {label} (Split)")
+                self.lbl_source.setStyleSheet("color: #44bd32; font-weight: bold;")
+                self.lbl_target.setText(f"Target: {label} (Split)")
+                self.lbl_target.setStyleSheet("color: #44bd32; font-weight: bold;")
+                self.log_text.append(f"[SUCCESS] Split schema: {len(source_cols)} Source, {len(target_cols)} Target columns.")
+                self.refresh_grid()
+                return
+
+        # Default behavior if no split
+        if default_type == "Source":
+            self.source_metadata.extend(cols)
+            self.lbl_source.setText(f"Source: {len(self.source_metadata)} cols")
+            self.lbl_source.setStyleSheet("color: #a6e3a1; font-weight: bold;")
+            self.log_text.append(f"[SUCCESS] Appended {len(cols)} source columns. Total: {len(self.source_metadata)}")
+        else:
             self.target_metadata = cols
             self.lbl_target.setText(f"Target: {label}")
-            self.lbl_target.setStyleSheet("color: #44bd32; font-weight: bold;")
+            self.lbl_target.setStyleSheet("color: #a6e3a1; font-weight: bold;")
             self.log_text.append(f"[SUCCESS] Loaded {len(cols)} target columns.")
-            self.refresh_grid()
+        self.refresh_grid()
+
+    def load_source_data(self):
+        dialog = ConnectionDialog(self)
+        dialog.setWindowTitle("📥 Load Source Data (Live DB)")
+        if not dialog.exec():
+            return
+            
+        conn_str, is_offline = dialog.get_connection_details()
+        if is_offline:
+            QMessageBox.warning(self, "Warning", "Data can only be loaded from a Live Database, not a DDL script.")
+            return
+            
+        try:
+            kwargs = {}
+            if conn_str.startswith("mssql+pyodbc"):
+                kwargs['use_setinputsizes'] = False
+            engine = create_engine(conn_str, **kwargs)
+            introspector = SchemaIntrospector(engine)
+            available_tables = introspector.get_table_names()
+            if not available_tables:
+                QMessageBox.warning(self, "Warning", "No tables found in the database.")
+                return
+                
+            from PySide6.QtWidgets import QInputDialog
+            table_name, ok = QInputDialog.getItem(self, "Select Table", "Choose table to load data from (TOP 1000):", available_tables, 0, False)
+            if not ok or not table_name:
+                return
+                
+            self.status_bar.showMessage(" ⚙️ Loading data...")
+            
+            try:
+                # Try MSSQL TOP syntax
+                self.source_data = pd.read_sql(f"SELECT TOP 1000 * FROM [{table_name}]", engine)
+            except Exception:
+                # Fallback to standard SQL LIMIT
+                self.source_data = pd.read_sql_query(f"SELECT * FROM {table_name} LIMIT 1000", engine)
+                
+            self.lbl_data.setText(f"Data: {len(self.source_data)} rows")
+            self.lbl_data.setStyleSheet("color: #44bd32; font-weight: bold;")
+            self.log_text.append(f"[SUCCESS] Loaded {len(self.source_data)} rows from {table_name}.")
+            self.status_bar.showMessage(" ✅ Data loaded.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load data:\n{e}")
+            self.log_text.append(f"[ERROR] Data load failed: {e}\n{traceback.format_exc()}")
+            self.status_bar.showMessage(" ❌ Data load failed.")
 
     def load_ids_mapping(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "Select IDS Mapping Excel", "", "Excel Files (*.xls *.xlsx);;All Files (*.*)")
@@ -521,11 +659,17 @@ class MainWindow(QMainWindow):
             
             engine = TransformationEngine(mapping_def, code_config)
             
-            # Create a mock source dataframe with 5 rows
-            mock_data = {}
-            for col in self.source_metadata:
-                mock_data[col["col_name"]] = [f"Mock_{col['col_name']}_{i}" for i in range(5)]
-            source_df = pd.DataFrame(mock_data)
+            # Use real data if loaded, else use mock data
+            if hasattr(self, 'source_data') and self.source_data is not None:
+                source_df = self.source_data
+                self.log_text.append(f"[INFO] Using {len(source_df)} rows of loaded source data.")
+            else:
+                # Create a mock source dataframe with 5 rows
+                mock_data = {}
+                for col in self.source_metadata:
+                    mock_data[col["col_name"]] = [f"Mock_{col['col_name']}_{i}" for i in range(5)]
+                source_df = pd.DataFrame(mock_data)
+                self.log_text.append("[WARNING] No real source data loaded. Using 5 rows of mock data.")
             
             self.staged_data = engine.transform(source_df)
             
