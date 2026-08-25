@@ -20,9 +20,7 @@ class TransformationEngine:
         """
         Transforms the source dataframe into the target dataframe based on mapping rules.
         """
-        # Start with all source columns to preserve them in the final staged data
-        # This prevents the final DataFrame from being reduced to only explicitly mapped columns
-        target_dict = {c: source_df[c] for c in source_df.columns}
+        target_dict = {}
         
         # Create a case-insensitive lookup map for source columns
         col_map = {str(c).lower(): c for c in source_df.columns}

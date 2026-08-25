@@ -52,3 +52,25 @@ def test_transformation_engine():
     # '3' -> 'UNKNOWN' (default)
     # None -> 'UNKNOWN'
     assert list(target_df["type_code"]) == ["A", "UNKNOWN", "UNKNOWN"]
+
+def test_transformation_engine_duplicate_source_cols():
+    # Setup Mapping Definition
+    mapping_def = MappingDefinition("Test", "source", "target")
+    mapping_def.add_rule(FieldMappingRule(target_col="out_id", source_col="in_id", mode="direct"))
+    mapping_def.add_rule(FieldMappingRule(target_col="status", mode="constant", constant_value="ACTIVE"))
+    
+    engine = TransformationEngine(mapping_def, CodeMappingConfig())
+    
+    # Source Data with duplicate columns
+    # Using a list of tuples to create duplicate column names
+    data = [
+        (1, "A", "B"),
+        (2, "C", "D"),
+    ]
+    source_df = pd.DataFrame(data, columns=["in_id", "dup_col", "dup_col"])
+    
+    target_df = engine.transform(source_df)
+    
+    # Assert output only contains mapped columns (duplicate columns didn't break it and are excluded)
+    assert list(target_df.columns) == ["out_id", "status"]
+    assert list(target_df["out_id"]) == [1, 2]

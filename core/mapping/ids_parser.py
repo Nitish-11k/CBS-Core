@@ -171,11 +171,13 @@ class IDSParser:
         picture_col_name = col_map.get('picture')
         table_col_name = col_map.get('table')
         
+        using_positional_fallback = False
         if not source_col_name or not target_col_name:
             if len(df.columns) > 29:
                 # User specified fallback: Columns AC (28) and AD (29)
                 source_col_name = df.columns[29]
                 table_col_name = df.columns[28]
+                using_positional_fallback = True
             else:
                 available = ', '.join(df.columns.tolist())
                 raise ValueError(
@@ -186,8 +188,7 @@ class IDSParser:
                 )
             
         for _, row in df.iterrows():
-            # Override with explicit columns AC (28) and AD (29) if requested
-            if len(df.columns) > 29:
+            if using_positional_fallback:
                 src_table = str(row.iloc[28]).strip() if pd.notna(row.iloc[28]) else ""
                 src_col = str(row.iloc[29]).strip() if pd.notna(row.iloc[29]) else ""
             else:

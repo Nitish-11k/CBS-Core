@@ -687,8 +687,12 @@ class MainWindow(QMainWindow):
             # Auto-detect multiple source tables from mappings
             unique_src_tables = []
             if hasattr(self, 'mapping_rules') and self.mapping_rules:
-                unique_src_tables = list(set([r.get("src_table", "").strip() for r in self.mapping_rules if r.get("src_table", "").strip()]))
-            
+                seen = {}
+                for r in self.mapping_rules:
+                    t = r.get("src_table", "").strip()
+                    if t and t.lower() not in seen:
+                        seen[t.lower()] = t
+                unique_src_tables = list(seen.values())
             if len(unique_src_tables) > 1:
                 available_tables.insert(0, "[Auto Multi-Table SQL...]")
                 
@@ -698,7 +702,8 @@ class MainWindow(QMainWindow):
                 return
                 
             if table_name == "[Auto Multi-Table SQL...]":
-                join_dialog = MultiTableJoinDialog(unique_src_tables, self)
+                mapping_rules_to_pass = getattr(self, 'mapping_rules', [])
+                join_dialog = MultiTableJoinDialog(unique_src_tables, mapping_rules_to_pass, self)
                 if not join_dialog.exec():
                     self.status_bar.showMessage(" Data load cancelled.")
                     return
