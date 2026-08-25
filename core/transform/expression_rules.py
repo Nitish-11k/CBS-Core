@@ -32,6 +32,12 @@ class SafeExpressionParser:
             return series.astype(str).str.upper()
         elif expr == 'lowercase()':
             return series.astype(str).str.lower()
+        elif expr == 'name_first()':
+            return self._extract_name_part(series, 'first')
+        elif expr == 'name_middle()':
+            return self._extract_name_part(series, 'middle')
+        elif expr == 'name_last()':
+            return self._extract_name_part(series, 'last')
         elif expr.startswith('concat('):
             # Very basic concat parsing for example: concat(col1, col2)
             match = re.match(r'concat\((.*)\)', expr)
@@ -50,3 +56,19 @@ class SafeExpressionParser:
         import logging
         logging.getLogger(__name__).warning(f"Unrecognized or unsafe expression: {expression}. Skipping.")
         return series
+
+    def _extract_name_part(self, series: pd.Series, part: str) -> pd.Series:
+        def split_logic(val):
+            if pd.isna(val):
+                return ""
+            words = str(val).strip().split()
+            if not words:
+                return ""
+            if part == 'first':
+                return words[0]
+            elif part == 'last':
+                return words[-1] if len(words) > 1 else ""
+            elif part == 'middle':
+                return " ".join(words[1:-1]) if len(words) > 2 else ""
+            return ""
+        return series.apply(split_logic)

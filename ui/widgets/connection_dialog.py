@@ -1,13 +1,13 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFormLayout, QTabWidget, QWidget, QFileDialog, QMessageBox
+    QLineEdit, QPushButton, QFormLayout, QTabWidget, QWidget, QFileDialog, QMessageBox, QComboBox
 )
 from PySide6.QtCore import Qt
 
 class ConnectionDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🔗 Database / Schema Connection")
+        self.setWindowTitle("Database / Schema Connection")
         self.setFixedSize(450, 300)
         
         self.init_ui()
@@ -18,8 +18,19 @@ class ConnectionDialog(QDialog):
         title_lbl = QLabel("Select Data Source Type")
         title_lbl.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 5px;")
         layout.addWidget(title_lbl)
-        
         self.tabs = QTabWidget()
+        
+        # We can add an optional Table Name input at the top if the dialog title suggests it
+        self.table_name_input = QLineEdit()
+        if "Table:" in self.windowTitle():
+            t_name = self.windowTitle().split("Table: ")[1].strip(")")
+            self.table_name_input.setText(t_name)
+        else:
+            self.table_name_input.setPlaceholderText("Enter target table name (if applicable)")
+            
+        tbl_layout = QFormLayout()
+        tbl_layout.addRow("Target Table:", self.table_name_input)
+        layout.addLayout(tbl_layout)
         
         # Tab 1: Live DB
         self.tab_db = QWidget()
@@ -28,7 +39,7 @@ class ConnectionDialog(QDialog):
         form_layout = QFormLayout()
         
         self.dsn_input = QLineEdit()
-        self.dsn_input.setPlaceholderText("e.g. MyTargetDSN")
+        self.dsn_input.setPlaceholderText("e.g. localhost\\SQLEXPRESS or MyDSN")
         
         self.uid_input = QLineEdit()
         self.uid_input.setPlaceholderText("Username (Leave blank for Windows Auth)")
@@ -36,8 +47,17 @@ class ConnectionDialog(QDialog):
         self.pwd_input = QLineEdit()
         self.pwd_input.setPlaceholderText("Password")
         self.pwd_input.setEchoMode(QLineEdit.Password)
+        self.driver_combo = QComboBox()
+        self.driver_combo.addItems([
+            "ODBC Driver 17 for SQL Server",
+            "SQL Server",
+            "ODBC Driver 18 for SQL Server",
+            "ODBC Driver 13 for SQL Server",
+            "<Use DSN Only - No Driver>"
+        ])
         
-        form_layout.addRow("ODBC DSN Name:", self.dsn_input)
+        form_layout.addRow("Driver:", self.driver_combo)
+        form_layout.addRow("Server / DSN:", self.dsn_input)
         form_layout.addRow("User ID:", self.uid_input)
         form_layout.addRow("Password:", self.pwd_input)
         
@@ -75,9 +95,9 @@ class ConnectionDialog(QDialog):
         layout.addWidget(self.tabs)
         
         btn_layout = QHBoxLayout()
-        self.btn_connect = QPushButton("✔️ Confirm Selection")
+        self.btn_connect = QPushButton("Confirm Selection")
         self.btn_connect.setStyleSheet("background-color: #2e7d32; color: white; font-weight: bold; padding: 5px;")
-        self.btn_cancel = QPushButton("❌ Cancel")
+        self.btn_cancel = QPushButton("Cancel")
         
         self.btn_connect.clicked.connect(self.accept)
         self.btn_cancel.clicked.connect(self.reject)
@@ -97,10 +117,21 @@ class ConnectionDialog(QDialog):
         dsn = self.dsn_input.text().strip()
         uid = self.uid_input.text().strip()
         pwd = self.pwd_input.text().strip()
+        driver = self.driver_combo.currentText()
+        
         if uid and pwd:
-            return f"mssql+pyodbc://{uid}:{pwd}@{dsn}"
+            url = f"mssql+pyodbc://{uid}:{pwd}@{dsn}"
         else:
-            return f"mssql+pyodbc://{dsn}?trusted_connection=yes"
+            url = f"mssql+pyodbc://{dsn}?trusted_connection=yes"
+            
+        if driver != "<Use DSN Only - No Driver>":
+            import urllib.parse
+            encoded_driver = urllib.parse.quote_plus(driver)
+            if "?" in url:
+                url += f"&driver={encoded_driver}"
+            else:
+                url += f"?driver={encoded_driver}"
+        return url
             
     def test_connection(self):
         conn_str = self.get_sqlalchemy_url()
@@ -113,11 +144,18 @@ class ConnectionDialog(QDialog):
             engine.connect().close()
             QMessageBox.information(self, "Connection Test", "Connection successful!")
         except Exception as e:
-            QMessageBox.critical(self, "Connection Failed", f"Failed to connect:\n{str(e)}")
+            import traceback
+            full_traceback = traceback.format_exc()
+            QMessageBox.critical(self, "Connection Failed", f"Failed to connect:\n{str(e)}\n\nTraceback:\n{full_traceback}")
         
     def get_connection_details(self):
         is_offline = (self.tabs.currentIndex() == 1)
-        if is_offline:
-            return self.ddl_path_input.text().strip(), True
+        if hasattr(self, 'table_name_input'):
+            t_name = self.table_name_input.text().strip()
         else:
-            return self.get_sqlalchemy_url(), False
+            t_name = ""
+            
+        if is_offline:
+            return self.ddl_path_input.text().strip(), True, t_name
+        else:
+            return self.get_sqlalchemy_url(), False, t_name

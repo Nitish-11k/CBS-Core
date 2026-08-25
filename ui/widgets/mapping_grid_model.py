@@ -36,7 +36,7 @@ class MappingGridModel(QAbstractTableModel):
             elif col == 3: return str(row_data.get("src_len", ""))
             elif col == 4: return "Yes" if row_data.get("src_null") else "No"
             
-            elif col == 5: return row_data.get("map_status", "🔴 Gap")
+            elif col == 5: return row_data.get("map_status", "Gap")
             
             elif col == 6: return row_data.get("tgt_col", "")
             elif col == 7: return row_data.get("tgt_type", "")
@@ -46,6 +46,7 @@ class MappingGridModel(QAbstractTableModel):
             
         elif role == Qt.ItemDataRole.EditRole:
             if col == 1: return row_data.get("src_col", "")
+            elif col == 10: return row_data.get("rule_expr", "")
             
         elif role == Qt.ItemDataRole.TextAlignmentRole:
             if col in [3, 8]: # lengths
@@ -56,15 +57,20 @@ class MappingGridModel(QAbstractTableModel):
 
     def flags(self, index):
         default_flags = super().flags(index)
-        if index.column() == 1:  # Source Col is editable
+        if index.column() in [1, 10]:  # Source Col and Rule/Expr are editable
             return default_flags | Qt.ItemFlag.ItemIsEditable
         return default_flags
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-        if index.column() == 1 and role == Qt.ItemDataRole.EditRole:
-            self._data[index.row()]["src_col"] = value
-            self.dataChanged.emit(index, index)
-            return True
+        if role == Qt.ItemDataRole.EditRole:
+            if index.column() == 1:
+                self._data[index.row()]["src_col"] = value
+                self.dataChanged.emit(index, index)
+                return True
+            elif index.column() == 10:
+                self._data[index.row()]["rule_expr"] = value
+                self.dataChanged.emit(index, index)
+                return True
         return False
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
@@ -76,3 +82,31 @@ class MappingGridModel(QAbstractTableModel):
         self.beginResetModel()
         self._data = new_data
         self.endResetModel()
+
+class DataFrameModel(QAbstractTableModel):
+    def __init__(self, df):
+        super().__init__()
+        import pandas as pd
+        # Limit to 100 rows for UI performance in previews
+        self._df = df.head(100) if df is not None else pd.DataFrame()
+        
+    def rowCount(self, parent=QModelIndex()):
+        return len(self._df)
+        
+    def columnCount(self, parent=QModelIndex()):
+        return len(self._df.columns)
+        
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        import pandas as pd
+        if role == Qt.ItemDataRole.DisplayRole:
+            val = self._df.iloc[index.row(), index.column()]
+            return "" if pd.isna(val) else str(val)
+        return None
+        
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
+                return str(self._df.columns[section])
+            else:
+                return str(section)
+        return None

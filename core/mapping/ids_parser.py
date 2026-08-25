@@ -172,16 +172,28 @@ class IDSParser:
         table_col_name = col_map.get('table')
         
         if not source_col_name or not target_col_name:
-            available = ', '.join(df.columns.tolist())
-            raise ValueError(
-                f"Excel file missing required columns. Need a source column "
-                f"(tried: FIELD NAME, SOURCE FIELD, etc.) and target column "
-                f"(tried: DATABASE FIELD NAME, TARGET FIELD, etc.).\n"
-                f"Available columns: {available}"
-            )
+            if len(df.columns) > 29:
+                # User specified fallback: Columns AC (28) and AD (29)
+                source_col_name = df.columns[29]
+                table_col_name = df.columns[28]
+            else:
+                available = ', '.join(df.columns.tolist())
+                raise ValueError(
+                    f"Excel file missing required columns. Need a source column "
+                    f"(tried: FIELD NAME, SOURCE FIELD, etc.) and target column "
+                    f"(tried: DATABASE FIELD NAME, TARGET FIELD, etc.).\n"
+                    f"Available columns: {available}"
+                )
             
         for _, row in df.iterrows():
-            src_col = str(row[source_col_name]).strip() if pd.notna(row[source_col_name]) else ""
+            # Override with explicit columns AC (28) and AD (29) if requested
+            if len(df.columns) > 29:
+                src_table = str(row.iloc[28]).strip() if pd.notna(row.iloc[28]) else ""
+                src_col = str(row.iloc[29]).strip() if pd.notna(row.iloc[29]) else ""
+            else:
+                src_table = str(row[table_col_name]).strip() if table_col_name and pd.notna(row[table_col_name]) else ""
+                src_col = str(row[source_col_name]).strip() if source_col_name and pd.notna(row[source_col_name]) else ""
+                
             tgt_col = str(row[target_col_name]).strip() if pd.notna(row[target_col_name]) else ""
             
             rule = ""
@@ -206,6 +218,7 @@ class IDSParser:
                 
             mappings.append({
                 "src_col": src_col,
+                "src_table": src_table,
                 "src_type": src_type,
                 "src_len": src_len,
                 "tgt_col": tgt_col,
@@ -301,7 +314,7 @@ class IDSParser:
                     "src_type": src_col["type"],
                     "src_len": src_col["len"],
                     "src_null": src_col["null"],
-                    "map_status": "🟢 Mapped",
+                    "map_status": "Mapped",
                     "tgt_col": tgt_name,
                     "tgt_type": tgt["type"],
                     "tgt_len": tgt["len"],
@@ -315,7 +328,7 @@ class IDSParser:
                     "src_type": direct_src["type"],
                     "src_len": direct_src["len"],
                     "src_null": direct_src["null"],
-                    "map_status": "🟢 Mapped",
+                    "map_status": "Mapped",
                     "tgt_col": tgt_name,
                     "tgt_type": tgt["type"],
                     "tgt_len": tgt["len"],
@@ -330,7 +343,7 @@ class IDSParser:
                     "src_type": excel_rule.get("src_type", ""),
                     "src_len": excel_rule.get("src_len", ""),
                     "src_null": "",
-                    "map_status": "🟠 Mapped (src not loaded)",
+                    "map_status": "Mapped (src not loaded)",
                     "tgt_col": tgt_name,
                     "tgt_type": tgt["type"],
                     "tgt_len": tgt["len"],
@@ -344,7 +357,7 @@ class IDSParser:
                     "src_type": "",
                     "src_len": "",
                     "src_null": "",
-                    "map_status": "🔴 Target Gap",
+                    "map_status": "Target Gap",
                     "tgt_col": tgt_name,
                     "tgt_type": tgt["type"],
                     "tgt_len": tgt["len"],
@@ -362,7 +375,7 @@ class IDSParser:
                     "src_type": src["type"],
                     "src_len": src["len"],
                     "src_null": src["null"],
-                    "map_status": "🟡 Unmapped Src",
+                    "map_status": "Unmapped Src",
                     "tgt_col": "",
                     "tgt_type": "",
                     "tgt_len": "",

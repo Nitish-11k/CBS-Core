@@ -20,41 +20,60 @@ class TransformationEngine:
         """
         Transforms the source dataframe into the target dataframe based on mapping rules.
         """
-        # Create an empty dataframe for the target
-        target_df = pd.DataFrame()
+        # Start with all source columns to preserve them in the final staged data
+        # This prevents the final DataFrame from being reduced to only explicitly mapped columns
+        target_dict = {c: source_df[c] for c in source_df.columns}
+        
+        # Create a case-insensitive lookup map for source columns
+        col_map = {str(c).lower(): c for c in source_df.columns}
 
         for rule in self.mapping_def.rules:
             target_col = rule.target_col
+            result_series = pd.Series(index=source_df.index, dtype='object')
             
+            # Case insensitive search
+            actual_src_col = None
+            if rule.source_col:
+                # Try exact match first, then case-insensitive, then strip prefixes (e.g. T1.col_name)
+                if rule.source_col in source_df.columns:
+                    actual_src_col = rule.source_col
+                elif str(rule.source_col).lower() in col_map:
+                    actual_src_col = col_map[str(rule.source_col).lower()]
+                else:
+                    # sometimes source_col is 'Table_Name.ColName'
+                    pure_col = str(rule.source_col).split('.')[-1].lower()
+                    if pure_col in col_map:
+                        actual_src_col = col_map[pure_col]
+
             if rule.mode == 'direct':
-                if rule.source_col and rule.source_col in source_df.columns:
-                    target_df[target_col] = source_df[rule.source_col]
+                if actual_src_col:
+                    result_series = source_df[actual_src_col]
                 else:
                     logger.warning(f"Source column {rule.source_col} not found for direct mapping to {target_col}")
-                    target_df[target_col] = pd.Series(dtype='object')
             
             elif rule.mode == 'constant':
-                target_df[target_col] = rule.constant_value
+                result_series = pd.Series(rule.constant_value, index=source_df.index)
             
             elif rule.mode == 'expression':
-                if rule.source_col and rule.source_col in source_df.columns:
-                    series = source_df[rule.source_col]
+                if actual_src_col:
+                    series = source_df[actual_src_col]
                 else:
-                    # If no source col, pass an empty series or dummy
                     series = pd.Series(index=source_df.index, dtype='object')
                     
                 if rule.expression:
-                    target_df[target_col] = self.parser.apply_rule(series, rule.expression, source_df)
+                    result_series = self.parser.apply_rule(series, rule.expression, source_df)
                 else:
-                    target_df[target_col] = series
+                    result_series = series
             
             # Apply code mapping if one exists for this target column
             code_list = self.code_map_config.get_list(target_col)
             if code_list:
-                # Map using pandas map, filling unmatched with default_value if provided
-                mapped_series = target_df[target_col].astype(str).map(code_list.map)
+                mapped_series = result_series.astype(str).map(code_list.map)
                 if code_list.default_value is not None:
                     mapped_series = mapped_series.fillna(code_list.default_value)
-                target_df[target_col] = mapped_series
+                result_series = mapped_series
+                
+            target_dict[target_col] = result_series
 
-        return target_df
+        # Construct DataFrame all at once to avoid fragmentation warnings
+        return pd.DataFrame(target_dict)
